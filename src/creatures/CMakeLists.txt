@@ -1,0 +1,66 @@
+target_sources(${PROJECT_NAME}_lib PRIVATE
+    appearance/mounts/mounts.cpp
+    appearance/outfit/outfit.cpp
+    appearance/attached_effects/attached_effects.cpp
+    combat/combat.cpp
+    combat/condition.cpp
+    combat/spells.cpp
+    creature.cpp
+    interactions/chat.cpp
+    monsters/monster.cpp
+    monsters/monsters.cpp
+    monsters/spawns/spawn_monster.cpp
+    npcs/npc.cpp
+    npcs/npcs.cpp
+    npcs/spawns/spawn_npc.cpp
+    players/animus_mastery/animus_mastery.cpp
+    players/grouping/familiars.cpp
+    players/grouping/groups.cpp
+    players/grouping/guild.cpp
+    players/grouping/party.cpp
+    players/imbuements/imbuements.cpp
+    players/management/ban.cpp
+    players/management/waitlist.cpp
+    players/storages/storages.cpp
+    players/player.cpp
+    players/achievement/player_achievement.cpp
+    players/attached_effects/player_attached_effects.cpp
+    players/cyclopedia/player_badge.cpp
+    players/cyclopedia/player_cyclopedia.cpp
+    players/cyclopedia/player_title.cpp
+    players/daily_reward/daily_reward.cpp
+    players/wheel/player_wheel.cpp
+    players/wheel/wheel_gems.cpp
+    players/vocations/vocation.cpp
+    players/vip/player_vip.cpp
+    players/proficiencies/proficiencies.cpp
+)
+
+if(WIN32)
+    set(BOT_ENGINE_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_chat.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_combat.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_command.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_csv.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_csvedit.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_data.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_debug.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_engine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_engine_loader.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_house.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_hunt.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_liveness.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_nav.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_party.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_poi.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_roam.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_shrine.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_supply.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_tick.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_travel.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_waypoint.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/players/bot/bot_zgraph.cpp"
+    )
+    target_sources(${PROJECT_NAME}_lib PRIVATE ${BOT_ENGINE_SOURCES})
+    set_source_files_properties(${BOT_ENGINE_SOURCES} TARGET_DIRECTORY ${PROJECT_NAME}_lib PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+endif()

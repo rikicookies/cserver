@@ -1,0 +1,115 @@
+cmake_minimum_required(VERSION 3.22...4.5 FATAL_ERROR)
+
+# Keep MSVC debug information cacheable without losing the linked PDB.
+if(POLICY CMP0141)
+    cmake_policy(SET CMP0141 NEW)
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+endif()
+
+# VCPKG
+# cmake -DCMAKE_TOOLCHAIN_FILE=/opt/workspace/vcpkg/scripts/buildsystems/vcpkg.cmake ..
+# Needed libs are in file vcpkg.json
+# Windows required libs: .\vcpkg install --triplet x64-windows asio pugixml spdlog curl protobuf parallel-hashmap magic-enum mio luajit libmariadb mpir abseil bshoshany-thread-pool
+
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "")
+endif()
+
+if(DEFINED ENV{VCPKG_DEFAULT_TRIPLET} AND NOT DEFINED VCPKG_TARGET_TRIPLET)
+    set(VCPKG_TARGET_TRIPLET "$ENV{VCPKG_DEFAULT_TRIPLET}" CACHE STRING "")
+endif()
+
+set(VCPKG_FEATURE_FLAGS "versions")
+set(VCPKG_BUILD_TYPE "release")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# *****************************************************************************
+# Project crystalserver
+# *****************************************************************************
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    project(crystalserver-debug LANGUAGES CXX)
+else()
+    project(crystalserver LANGUAGES CXX)
+endif()
+
+# *****************************************************************************
+# Append cmake search path
+# *****************************************************************************
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+
+# Configure build options for compatibility with commodity CPUs
+if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i[3-6]86)$")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=x86-64 -mtune=generic -mno-avx -mno-sse4")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=x86-64 -mtune=generic -mno-avx -mno-sse4")
+endif()
+
+# No source here uses C++20 modules. The policy range above enables CMP0155 on CMake >= 3.28: every
+# file would get a module dependency scan and GCC would be called with -fmodules-ts, which ccache
+# refuses to cache ("unsupported compiler option"), so the compiler cache would store nothing.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+# *****************************************************************************
+# Include cmake tools
+# *****************************************************************************
+include(MessageColors)
+include(LoggingHelper)
+
+# *****************************************************************************
+# Options
+# *****************************************************************************
+option(OPTIONS_ENABLE_CCACHE "Enable ccache" OFF)
+option(OPTIONS_ENABLE_SCCACHE "Use sccache to speed up compilation process" OFF)
+option(OPTIONS_ENABLE_IPO "Check and Enable interprocedural optimization (IPO/LTO)" ON)
+option(FEATURE_METRICS "Enable metrics feature" OFF)
+
+# *****************************************************************************
+# Options Code
+# *****************************************************************************
+
+if(FEATURE_METRICS)
+    log_option_enabled("metrics")
+else ()
+    log_option_disabled("metrics")
+endif ()
+
+# === CCACHE ===
+# A launcher given from outside (environment or -D) wins, so CI can pick its own cache tool.
+if(OPTIONS_ENABLE_CCACHE AND NOT CMAKE_CXX_COMPILER_LAUNCHER)
+    find_program(CCACHE ccache)
+    if(CCACHE)
+        log_option_enabled("ccache")
+        set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
+        set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
+    else()
+        log_option_disabled("ccache")
+    endif()
+endif()
+
+# === SCCACHE ===
+if(OPTIONS_ENABLE_SCCACHE)
+    find_program(SCCACHE_PATH sccache)
+    if(SCCACHE_PATH)
+        log_option_enabled("sccache")
+        set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE_PATH})
+        set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PATH})
+    else()
+        log_option_disabled("sccache")
+    endif()
+endif()
+
+# === Linker, parallelism and low-memory mode ===
+include(BuildTuning)
+
+option(ENABLE_TEST_LTO "Link tests against the production LTO library" ON)
+option(BUILD_TESTS "Build tests" OFF) # By default, tests will not be built
+option(RUN_TESTS_AFTER_BUILD "Run tests when building" OFF) # By default, tests will only run if requested
+
+# *****************************************************************************
+# Add project
+# *****************************************************************************
+add_subdirectory(src)
+
+if(BUILD_TESTS OR PACKAGE_TESTS)
+    add_subdirectory(tests)
+endif()
